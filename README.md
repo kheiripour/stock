@@ -1,2 +1,4 @@
 # stock
-stock analyze project with python
+Stock Analyze by python
+In collaboration with Nima Nasehi
+
