@@ -1,13 +1,11 @@
 import csv
 import mysql.connector
-from time import daylight, time
+from time import time
 from os import system
 from statistics import mean
 from collections import defaultdict
 
-
-
-importFile='C:\\Users\\98912\\Desktop\\Stock\\imp4noDup.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp4noDup.csv'
 
 def cleanRecord(value):  
     
@@ -56,7 +54,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
         i +=1
         row[1]=symbolsdict.get(row[1],0)
         if row[1] == 0 : continue
-        ed= row[2]
+        
         row[0]=cleanRecord(row[0])
         
         for r in range(2,len(row)):
