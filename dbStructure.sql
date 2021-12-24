@@ -17,6 +17,17 @@
 CREATE DATABASE IF NOT EXISTS `stock` /*!40100 DEFAULT CHARACTER SET utf8mb3 */;
 USE `stock`;
 
+-- Dumping structure for table stock.adjustments
+CREATE TABLE IF NOT EXISTS `adjustments` (
+  `symbolid` smallint(5) unsigned DEFAULT NULL,
+  `date` int(8) unsigned DEFAULT NULL,
+  `coefficient` float unsigned DEFAULT NULL,
+  `createdAt` timestamp NULL DEFAULT current_timestamp(),
+  UNIQUE KEY `symbol-date` (`symbolid`,`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Data exporting was unselected.
+
 -- Dumping structure for table stock.compare
 CREATE TABLE IF NOT EXISTS `compare` (
   `id` varchar(50) DEFAULT NULL,
@@ -34,8 +45,8 @@ CREATE TABLE IF NOT EXISTS `daily` (
   `date` int(8) unsigned DEFAULT NULL,
   `symbolid` smallint(4) unsigned DEFAULT NULL,
   `marketValue` bigint(20) unsigned DEFAULT NULL,
-  `volume` bigint(20) unsigned DEFAULT NULL,
-  `basicVolume` bigint(20) unsigned DEFAULT NULL,
+  `vol` bigint(20) unsigned DEFAULT NULL,
+  `basicVol` bigint(20) unsigned DEFAULT NULL,
   `fPrice` int(10) unsigned DEFAULT NULL,
   `fPriceDev` float DEFAULT NULL,
   `open` int(10) unsigned DEFAULT NULL,
@@ -47,10 +58,10 @@ CREATE TABLE IF NOT EXISTS `daily` (
   `realSellersCount` bigint(20) unsigned DEFAULT NULL,
   `legalBuyersCount` int(10) unsigned DEFAULT NULL,
   `legalSellersCount` int(10) unsigned DEFAULT NULL,
-  `realBuyersVolume` bigint(20) unsigned DEFAULT NULL,
-  `realSellersVolume` bigint(20) unsigned DEFAULT NULL,
-  `legalBuyersVolume` bigint(20) unsigned DEFAULT NULL,
-  `legalSellersVolume` bigint(20) unsigned DEFAULT NULL,
+  `realBuyersVol` bigint(20) unsigned DEFAULT NULL,
+  `realSellersVol` bigint(20) unsigned DEFAULT NULL,
+  `legalBuyersVol` bigint(20) unsigned DEFAULT NULL,
+  `legalSellersVol` bigint(20) unsigned DEFAULT NULL,
   `realBuyerPow` bigint(20) DEFAULT NULL,
   `realSellerPow` bigint(20) DEFAULT NULL,
   `realBuyerSellerPowRate` float DEFAULT NULL,
@@ -58,10 +69,9 @@ CREATE TABLE IF NOT EXISTS `daily` (
   `realStakeholdersMoneyFlow` bigint(20) DEFAULT NULL,
   `dailyRealBuyerPowerJump` float DEFAULT NULL,
   `tomorrowRealBuyerSellerPowRate` float DEFAULT NULL,
-  `volumeOnBasicVolume` float DEFAULT NULL,
-  `adjustedPrice` bigint(20) unsigned DEFAULT NULL,
+  `volOnBasicVol` float DEFAULT NULL,
   `candleColor` tinyint(4) DEFAULT NULL,
-  `fifteendVolAve` bigint(20) unsigned DEFAULT NULL,
+  `fifteenVolAve` bigint(20) unsigned DEFAULT NULL,
   `threeDaysRealBuyPowerAve` bigint(20) DEFAULT NULL,
   `fiveDaysLaterPrice` int(11) unsigned DEFAULT NULL,
   `fiveDaysLaterPriceDev` float DEFAULT NULL,
@@ -75,14 +85,16 @@ CREATE TABLE IF NOT EXISTS `daily` (
   `sixtyDaysLaterPriceDev` float DEFAULT NULL,
   `lastDayPrice` int(10) unsigned DEFAULT NULL,
   `tomorrowPrice` int(10) unsigned DEFAULT NULL,
-  `volumeOnFifteenDaysBasicVolumeAve` float unsigned DEFAULT NULL,
+  `volOnFifteenDaysBasicVolAve` float unsigned DEFAULT NULL,
   `threeDaysPriceDevSum` float DEFAULT NULL,
+  `adPrice` int(11) unsigned DEFAULT NULL,
+  `adVol` bigint(20) DEFAULT NULL,
   `createdAt` timestamp NULL DEFAULT current_timestamp(),
   `updatedAt` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `date-symbol` (`date`,`symbolid`),
   KEY `symbol` (`symbolid`)
-) ENGINE=InnoDB AUTO_INCREMENT=45987 DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=176 DEFAULT CHARSET=utf8mb3;
 
 -- Data exporting was unselected.
 
@@ -98,23 +110,23 @@ CREATE TABLE IF NOT EXISTS `errors` (
 
 -- Dumping structure for table stock.industries
 CREATE TABLE IF NOT EXISTS `industries` (
-  `id` tinyint(3) unsigned NOT NULL,
+  `id` tinyint(3) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(100) DEFAULT ' ',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb3;
 
 -- Data exporting was unselected.
 
 -- Dumping structure for table stock.symbols
 CREATE TABLE IF NOT EXISTS `symbols` (
-  `id` smallint(5) unsigned NOT NULL DEFAULT 0,
-  `name` char(50) NOT NULL DEFAULT '0',
-  `co` char(50) DEFAULT NULL,
+  `id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
+  `name` char(50) NOT NULL DEFAULT 'esme namad',
+  `co` char(50) DEFAULT 'esme sherkat',
   `industryid` tinyint(4) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`),
   KEY `industry` (`industryid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+) ENGINE=InnoDB AUTO_INCREMENT=1534 DEFAULT CHARSET=utf8mb3;
 
 -- Data exporting was unselected.
 

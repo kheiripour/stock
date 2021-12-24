@@ -5,18 +5,18 @@ from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp4noDup.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp6.csv'
 
 def cleanRecord(value):  
-    
+    value = str(value.replace(',',''))
     try:
-        r= int(value.replace(',',''))
+        r= int(value)
     except :
             try:
-                if float(value.replace(',',''))== float('inf'): 
+                if float(value)== float('inf'): 
                     r= 999999
                 else: 
-                    r= float(value.replace(',',''))
+                    r= float(value)
 
             except :
                 
@@ -39,6 +39,10 @@ sql = 'SELECT id, name FROM symbols'
 symbols = mycursor.execute(sql)
 symbolsdict = dict((y,x) for x , y in mycursor.fetchall())
 
+sql = 'SELECT symbolid,date,coefficient FROM adjustments'
+adjustments=mycursor.execute(sql)
+adjustments=mycursor.fetchall()
+# print (adjustments)
 dailydict = defaultdict(dict)
 
 with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
@@ -64,7 +68,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
         for field in range(2,len(fields)):
             dailydict[row[1]][fields[field]]=dailydict[row[1]].get(fields[field],[])+[(row[0],row[field])]
 
-        #calc realBuyerPow: (realBuyersVolume /  realBuyersCount) * fPrice
+        #calc realBuyerPow: (realBuyersVol /  realBuyersCount) * fPrice
         try:realBuyerPow=(row[16]/row[12])*row[5] 
         except Exception as er:
             e = 'realBuyerPow: ' + str (er)
@@ -80,7 +84,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             realBuyerPow=None
         dailydict[row[1]]['realBuyerPow']=dailydict[row[1]].get('realBuyerPow',[])+[(row[0],realBuyerPow)]
 
-        #calc realSellerPow: (realSellersVolume /  realSellersCount) * fPrice
+        #calc realSellerPow: (realSellersVol /  realSellersCount) * fPrice
         try:realSellerPow= row[17]/row[13] *row[5]
         except Exception as er:
             e = 'realSellerPow: ' + str (er)
@@ -112,7 +116,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             realBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['realBuyerSellerPowRate']=dailydict[row[1]].get('realBuyerSellerPowRate',[])+[(row[0],realBuyerSellerPowRate)]
 
-        #calc legalBuyerSellerPowRate: ((legalBuyersVolume /  legalBuyersCount) * fPrice) / ((legalSellersVolume /  legalSellersCount) * fPrice) if ((legalSellersVolume /  legalSellersCount) * fPrice)> 0 else 999999
+        #calc legalBuyerSellerPowRate: ((legalBuyersVol /  legalBuyersCount) * fPrice) / ((legalSellersVol /  legalSellersCount) * fPrice) if ((legalSellersVol /  legalSellersCount) * fPrice)> 0 else 999999
         try:legalBuyerSellerPowRate= ((row[18] / row[14]) * row[5]) / ((row[19] /  row[15]) * row[5]) if ((row[19] /  row[15]) * row[5])> 0 else 999999   # if makhraj = None then legalBuyerSellerPowRate=9999999 or None?  
         except Exception as er:
             e = 'legalBuyerSellerPowRate: ' + str (er)
@@ -128,7 +132,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             legalBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['legalBuyerSellerPowRate']=dailydict[row[1]].get('legalBuyerSellerPowRate',[])+[(row[0],legalBuyerSellerPowRate)]
         
-        #calc realStakeholdersMoneyFlow: (realBuyersVolume * fPrice) - (realSellersVolume * fPrice)
+        #calc realStakeholdersMoneyFlow: (realBuyersVol * fPrice) - (realSellersVol * fPrice)
         try:realStakeholdersMoneyFlow= (row[16] * row[5]) - (row[17] * row[5])
         except Exception as er:
             e = 'realStakeholdersMoneyFlow: ' + str (er)
@@ -144,10 +148,10 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             realStakeholdersMoneyFlow= None
         dailydict[row[1]]['realStakeholdersMoneyFlow']=dailydict[row[1]].get('realStakeholdersMoneyFlow',[])+[(row[0],realStakeholdersMoneyFlow)]
 
-        #calc volumeOnBasicVolume: volume/basicVolume
-        try:volumeOnBasicVolume=  row[3]/row[4]
+        #calc volOnBasicVol: vol/basicVol
+        try:volOnBasicVol=  row[3]/row[4]
         except Exception as er:
-            e = 'volumeOnBasicVolume: ' + str (er)
+            e = 'volOnBasicVol: ' + str (er)
             try:
                 sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
                 
@@ -157,8 +161,8 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                 mydb.commit()
             except:
                 pass
-            volumeOnBasicVolume= None
-        dailydict[row[1]]['volumeOnBasicVolume']=dailydict[row[1]].get('volumeOnBasicVolume',[])+[(row[0],volumeOnBasicVolume)]
+            volOnBasicVol= None
+        dailydict[row[1]]['volOnBasicVol']=dailydict[row[1]].get('volOnBasicVol',[])+[(row[0],volOnBasicVol)]
         
         #calc candleColor: (close - open) >0 : 1; (close - open) <0 : -1; (close - open) =0 : 0
         try:
@@ -179,6 +183,43 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                 pass
             candleColor= None
         dailydict[row[1]]['candleColor']=dailydict[row[1]].get('candleColor',[])+[(row[0],candleColor)]
+
+
+        #calc adPrice , adVol:
+
+        coes = list(filter(lambda x: x[0]==row[1] and x[1]>row[0],adjustments ))
+        coef = 1
+        for x in coes: coef = x[2]*coef
+        try: adPrice = row[5] * coef
+        except Exception as er:
+            e = 'adPrice: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            adPrice= None
+        dailydict[row[1]]['adPrice']=dailydict[row[1]].get('adPrice',[])+[(row[0],adPrice)]
+
+        try: adVol = row[3] / coef
+        except Exception as er:
+            e = 'adVol: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            adVol= None
+        dailydict[row[1]]['adVol']=dailydict[row[1]].get('adVol',[])+[(row[0],adVol)]
+
         
 
         #Inserting new items into databse with independent feilds.
@@ -227,36 +268,49 @@ print(outputtext3)
 
 t0=time()
 
+
+
+
+
+
+
+
 #Calculating dependent fields:
 updailydict = defaultdict(dict)
 try:del dailydict[0]
+
 except :pass
 outputtext3 = outputtext3 + '\nCalculatting dependent fields:\n' 
+
 q=0
 for symb in dailydict:
+
     q+=1
-    # Upcalc fifteendVolAve and volumeOnFifteenDaysBasicVolumeAve:
+
+   
+
+    # Upcalc fifteenVolAve and volOnFifteenDaysBasicVolAve:
     #getting before and after data in vols:
     
-    sqlbefore= '(SELECT date,volume FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 15) ORDER BY date' %(dailydict[symb]['volume'][0][0],symb)
-    sqlafter= '(SELECT date,volume FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 15) ORDER BY date' %(dailydict[symb]['volume'][-1][0],symb)
+    sqlbefore= '(SELECT date,vol FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 15) ORDER BY date' %(dailydict[symb]['vol'][0][0],symb)
+    sqlafter= '(SELECT date,vol FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 15) ORDER BY date' %(dailydict[symb]['vol'][-1][0],symb)
     bdate=mycursor.execute(sqlbefore)
     bdate = mycursor.fetchall()
     adate=mycursor.execute(sqlafter)
     adate = mycursor.fetchall()
 
-    dailydict[symb]['volume']=bdate+dailydict[symb]['volume']+adate
+    dailydict[symb]['vol']=bdate+dailydict[symb]['vol']+adate
 
 
-    for d in range(15,len(dailydict[symb]['volume'])):
-        date=dailydict[symb]['volume'][d][0]
-        vol=dailydict[symb]['volume'][d][1]
+    for d in range(15,len(dailydict[symb]['vol'])):
+        date=dailydict[symb]['vol'][d][0]
+        vol=dailydict[symb]['vol'][d][1]
         ave=None
-        vols = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['volume'][d-15:d]))))
+        vols = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['vol'][d-15:d]))))
         if len(vols) > 10: ave= mean(vols)
         if ave != None: 
-            updailydict[(symb,date)]['fifteendVolAve']=ave    
-            if  ave !=0 and vol!=None: updailydict[(symb,date)]['volumeOnFifteenDaysBasicVolumeAve']=vol/ave
+            updailydict[(symb,date)]['fifteenVolAve']=ave    
+            if  ave !=0 and vol!=None: updailydict[(symb,date)]['volOnFifteenDaysBasicVolAve']=vol/ave
 
 
 
@@ -289,6 +343,77 @@ for symb in dailydict:
             
             if val!=None:
                 updailydict[(symb,date)]['tomorrowRealBuyerSellerPowRate']= val
+
+
+
+
+
+    # Adjustments:
+
+    #getting before and after data in fPrice:
+    sqlbefore= '(SELECT date,fPrice FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 1) ORDER BY date' %(dailydict[symb]['fPrice'][0][0],symb)
+    sqlafter= '(SELECT date,fPrice FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 1) ORDER BY date' %(dailydict[symb]['fPrice'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall() 
+    dailydict[symb]['fPrice']=bdate+dailydict[symb]['fPrice']+adate
+
+
+    #getting before and after data in fPriceDev:
+    sqlbefore= '(SELECT date,fPriceDev FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 1) ORDER BY date' %(dailydict[symb]['fPriceDev'][0][0],symb)
+    sqlafter= '(SELECT date,fPriceDev FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 1) ORDER BY date' %(dailydict[symb]['fPriceDev'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall()
+    dailydict[symb]['fPriceDev']=bdate+dailydict[symb]['fPriceDev']+adate
+
+    leng=len(dailydict[symb]['fPrice'])
+    for p in range(1,leng):
+        bprice = dailydict[symb]['fPrice'][p][1]/(1+(dailydict[symb]['fPriceDev'][p][1]/100))
+        
+        # print (dailydict[symb]['fPrice'][p][0] , dailydict[symb]['fPrice'][p][1] ,bprice) 
+        dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
+        if dev > 0.1:
+            coef = (dailydict[symb]['fPrice'][p][1]/(100+(dailydict[symb]['fPriceDev'][p][1]))/dailydict[symb]['fPrice'][p-1][1])*100
+            try:
+                sql='INSERT adjustments (symbolid,date,coefficient) VALUES(%i,%i,%s)'%(symb,dailydict[symb]['fPrice'][p][0],coef)
+                mycursor.execute(sql)
+                mydb.commit()
+            except:
+                pass
+            sql= '(SELECT date,adPrice,adVol FROM daily  WHERE date < %i AND symbolid=%i) ORDER BY date' %(dailydict[symb]['fPrice'][p][0],symb)
+            ads=mycursor.execute(sql)
+            ads = mycursor.fetchall()
+            
+            for date , adP,adV in ads:
+                updailydict[(symb,date)]['adPrice']= updailydict[(symb,date)].get('adPrice',adP) * coef
+                updailydict[(symb,date)]['adVol']= updailydict[(symb,date)].get('adVol',adV) / coef
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # Upcalc laters prices:
