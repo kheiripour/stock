@@ -5,7 +5,7 @@ from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp6.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp7.csv'
 
 def cleanRecord(value):  
     value = str(value.replace(',',''))
@@ -42,7 +42,7 @@ symbolsdict = dict((y,x) for x , y in mycursor.fetchall())
 sql = 'SELECT symbolid,date,coefficient FROM adjustments'
 adjustments=mycursor.execute(sql)
 adjustments=mycursor.fetchall()
-# print (adjustments)
+
 dailydict = defaultdict(dict)
 
 with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
@@ -185,6 +185,108 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
         dailydict[row[1]]['candleColor']=dailydict[row[1]].get('candleColor',[])+[(row[0],candleColor)]
 
 
+        #calc candleType: 5 candle types:  0 for Doji, 1 for Hammer, 2 for inverted hammer,3 for marabuzo and 4 for others called Normal.
+        
+        if row[8] == row[9]!=None:
+            candleType=0
+        else:
+            try:
+                M = abs(row[7]-row[10])/(row[8]-row[9])    # abs(open - close)/(max-min)
+                
+                if 0.6<= M <=1:
+                    candleType=3
+                elif M<=0.1:
+                    candleType=0
+                else:
+                    X= abs (max(row[7],row[10])-row[8])/(row[8]-row[9])   #abs (max(open,close) - max)/(max-min)
+                    Y = abs (min(row[7],row[10])-row[9])/(row[8]-row[9])  #abs (min(open,close) - min)/(max-min)
+                    if X<=0.2 and Y >=0.5:
+                        candleType = 1
+                    elif X>=0.5 and Y<=0.2:
+                        candleType = 2
+                    else:
+                        candleType=4
+
+
+            except Exception as er:
+                e = 'candleType: ' + str (er)
+                try:
+                    sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                    
+                    val = (row[0],row[1],e)  
+                                    
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                except:
+                    pass
+                candleType= None
+        dailydict[row[1]]['candleType']=dailydict[row[1]].get('candleType',[])+[(row[0],candleType)]
+
+        #calc closeFinalDev: (close - fprice)/fprice
+        try:closeFinalDev=  (row[10]-row[5])/row[5]
+        except Exception as er:
+            e = 'closeFinalDev: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            closeFinalDev= None
+        dailydict[row[1]]['closeFinalDev']=dailydict[row[1]].get('closeFinalDev',[])+[(row[0],closeFinalDev)]
+
+        #calc closeMinDev: (close - min)/min
+        try:closeMinDev=  (row[10]-row[9])/row[9]
+        except Exception as er:
+            e = 'closeMinDev: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            closeMinDev= None
+        dailydict[row[1]]['closeMinDev']=dailydict[row[1]].get('closeMinDev',[])+[(row[0],closeMinDev)]
+
+
+        #calc realBuyersVolOnVol: realBuyersvol/vol
+        try:realBuyersVolOnVol=  row[16]/row[3]
+        except Exception as er:
+            e = 'realBuyersVolOnVol: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            realBuyersVolOnVol= None
+        dailydict[row[1]]['realBuyersVolOnVol']=dailydict[row[1]].get('realBuyersVolOnVol',[])+[(row[0],realBuyersVolOnVol)]
+
+        #calc legalSellersVolOnVol: legalSellersvol/vol
+        try:legalSellersVolOnVol=  row[19]/row[3]
+        except Exception as er:
+            e = 'legalSellersVolOnVol: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            realBuyersVolOnVol= None
+        dailydict[row[1]]['legalSellersVolOnVol']=dailydict[row[1]].get('legalSellersVolOnVol',[])+[(row[0],legalSellersVolOnVol)]
+
         #calc adPrice , adVol:
 
         coes = list(filter(lambda x: x[0]==row[1] and x[1]>row[0],adjustments ))
@@ -219,8 +321,6 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                 pass
             adVol= None
         dailydict[row[1]]['adVol']=dailydict[row[1]].get('adVol',[])+[(row[0],adVol)]
-
-        
 
         #Inserting new items into databse with independent feilds.
         sql1='INSERT INTO daily (date,symbolid'
@@ -268,13 +368,6 @@ print(outputtext3)
 
 t0=time()
 
-
-
-
-
-
-
-
 #Calculating dependent fields:
 updailydict = defaultdict(dict)
 try:del dailydict[0]
@@ -285,36 +378,7 @@ outputtext3 = outputtext3 + '\nCalculatting dependent fields:\n'
 q=0
 for symb in dailydict:
 
-    q+=1
-
-   
-
-    # Upcalc fifteenVolAve and volOnFifteenDaysBasicVolAve:
-    #getting before and after data in vols:
-    
-    sqlbefore= '(SELECT date,vol FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 15) ORDER BY date' %(dailydict[symb]['vol'][0][0],symb)
-    sqlafter= '(SELECT date,vol FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 15) ORDER BY date' %(dailydict[symb]['vol'][-1][0],symb)
-    bdate=mycursor.execute(sqlbefore)
-    bdate = mycursor.fetchall()
-    adate=mycursor.execute(sqlafter)
-    adate = mycursor.fetchall()
-
-    dailydict[symb]['vol']=bdate+dailydict[symb]['vol']+adate
-
-
-    for d in range(15,len(dailydict[symb]['vol'])):
-        date=dailydict[symb]['vol'][d][0]
-        vol=dailydict[symb]['vol'][d][1]
-        ave=None
-        vols = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['vol'][d-15:d]))))
-        if len(vols) > 10: ave= mean(vols)
-        if ave != None: 
-            updailydict[(symb,date)]['fifteenVolAve']=ave    
-            if  ave !=0 and vol!=None: updailydict[(symb,date)]['volOnFifteenDaysBasicVolAve']=vol/ave
-
-
-
-        
+    q+=1      
 
     # Upcalc dailyRealBuyerPowerJump and tomorrowRealBuyerSellerPowRate:
     #getting before and after data in realBuyerSellerPowRate:
@@ -344,10 +408,6 @@ for symb in dailydict:
             if val!=None:
                 updailydict[(symb,date)]['tomorrowRealBuyerSellerPowRate']= val
 
-
-
-
-
     # Adjustments:
 
     #getting before and after data in fPrice:
@@ -373,7 +433,6 @@ for symb in dailydict:
     for p in range(1,leng):
         bprice = dailydict[symb]['fPrice'][p][1]/(1+(dailydict[symb]['fPriceDev'][p][1]/100))
         
-        # print (dailydict[symb]['fPrice'][p][0] , dailydict[symb]['fPrice'][p][1] ,bprice) 
         dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
         if dev > 0.1:
             coef = (dailydict[symb]['fPrice'][p][1]/(100+(dailydict[symb]['fPriceDev'][p][1]))/dailydict[symb]['fPrice'][p-1][1])*100
@@ -383,335 +442,248 @@ for symb in dailydict:
                 mydb.commit()
             except:
                 pass
-            sql= '(SELECT date,adPrice,adVol FROM daily  WHERE date < %i AND symbolid=%i) ORDER BY date' %(dailydict[symb]['fPrice'][p][0],symb)
+            sql= '(SELECT date,adPrice,adVol FROM daily  WHERE date < %i AND symbolid=%i) ORDER BY date DESC' %(dailydict[symb]['fPrice'][p][0],symb)
             ads=mycursor.execute(sql)
             ads = mycursor.fetchall()
             
             for date , adP,adV in ads:
                 updailydict[(symb,date)]['adPrice']= updailydict[(symb,date)].get('adPrice',adP) * coef
                 updailydict[(symb,date)]['adVol']= updailydict[(symb,date)].get('adVol',adV) / coef
+                
+                for i in range (len(dailydict[symb]['adPrice'])):
+                    if dailydict[symb]['adPrice'][i][0]==date:
+                        del dailydict[symb]['adPrice'][i]
+                        break
+                
+                dailydict[symb]['adPrice'].insert(0,(date ,updailydict[(symb,date)]['adPrice']))  
+
+                for i in range (len(dailydict[symb]['adVol'])):
+                    if dailydict[symb]['adVol'][i][0]==date:
+                        del dailydict[symb]['adVol'][i]
+                        break
+                
+                dailydict[symb]['adVol'].insert(0,(date ,updailydict[(symb,date)]['adVol']))        
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # Upcalc laters prices:
-    #getting before and after data in fPrice:
-    sqlbefore= '(SELECT date,fPrice FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 60) ORDER BY date' %(dailydict[symb]['fPrice'][0][0],symb)
-    sqlafter= '(SELECT date,fPrice FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 60) ORDER BY date' %(dailydict[symb]['fPrice'][-1][0],symb)
+    #Upcalc laters adPrices:
+    #getting before and after data in adPrice:
+    sqlbefore= '(SELECT date,adPrice FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 60) ORDER BY date' %(dailydict[symb]['adPrice'][0][0],symb)
+    sqlafter= '(SELECT date,adPrice FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 60) ORDER BY date' %(dailydict[symb]['adPrice'][-1][0],symb)
     bdate=mycursor.execute(sqlbefore)
     bdate = mycursor.fetchall()
     adate=mycursor.execute(sqlafter)
     adate = mycursor.fetchall()
-    dailydict[symb]['fPrice']=bdate+dailydict[symb]['fPrice']+adate
-    tlen =len(dailydict[symb]['fPrice'])-len(adate)
-
+    dailydict[symb]['adPrice']=bdate+dailydict[symb]['adPrice']+adate
+    tlen =len(dailydict[symb]['adPrice'])-len(adate)
+    alen = len(adate)
+    blen = len(bdate)
     # ranges for tommorow:
-    r1_1 =(len(bdate)-1) if len(bdate)>1 else 0
-    r2_1 = tlen - ((1 - len(adate)) if len(adate)<1 else 0)
+    r1_1 =(blen-1) if blen>1 else 0
+    r2_1 = tlen - ((1 - alen) if alen<1 else 0)
 
     # ranges for fivedays:
-    r1_5 =(len(bdate)-5) if len(bdate)>5 else 0
-    r2_5 = tlen - ((5 - len(adate)) if len(adate)<5 else 0)
+    r1_5 =(blen-5) if blen>5 else 0
+    r2_5 = tlen - ((5 - alen) if alen<5 else 0)
 
     # ranges for tendays:
-    r1_10 =(len(bdate)-10) if len(bdate)>10 else 0
-    r2_10 = tlen - ((10 - len(adate)) if len(adate)<10 else 0)
+    r1_10 =(blen-10) if blen>10 else 0
+    r2_10 = tlen - ((10 - alen) if alen<10 else 0)
 
     # ranges for twentydays:
-    r1_20 =(len(bdate)-20) if len(bdate)>20 else 0
-    r2_20 = tlen - ((20 - len(adate)) if len(adate)<20 else 0)
+    r1_20 =(blen-20) if blen>20 else 0
+    r2_20 = tlen - ((20 - alen) if alen<20 else 0)
 
     # ranges for thirtydays:
-    r1_30 =(len(bdate)-30) if len(bdate)>30 else 0
-    r2_30 = tlen - ((30 - len(adate)) if len(adate)<30 else 0)
+    r1_30 =(blen-30) if blen>30 else 0
+    r2_30 = tlen - ((30 - alen) if alen<30 else 0)
 
     # ranges for sixtydays:
-    r1_60 =(len(bdate)-60) if len(bdate)>60 else 0
-    r2_60 = tlen - ((60 - len(adate)) if len(adate)<60 else 0)
+    r1_60 =(blen-60) if blen>60 else 0
+    r2_60 = tlen - ((60 - alen) if alen<60 else 0)
 
-    #Upcalc DaysLaterPrice
-    for p in range(0,tlen):
+    end = tlen + (blen if blen<4 else 4)
+    #Upcalc DaysLaterAdPrice
+    for p in range(0,end):
         val=None
-        #Upcalc lastDayPrice:
-        if (p>=len(bdate)-1 and p<tlen-1) or (p==tlen-1 and len(adate)>0):
-            date = dailydict[symb]['fPrice'][p+1][0]
-            val = dailydict[symb]['fPrice'][p][1]              
-        if val!=None: updailydict[(symb,date)]['lastDayPrice']= val
-
-        #date for all next fields:
-        date = dailydict[symb]['fPrice'][p][0]
-
-        #Upcalc tomorrowPrice:
+        date = dailydict[symb]['adPrice'][p][0]
+        adp=dailydict[symb]['adPrice'][p][1]
+        #Upcalc tomorrowAdPriceDev:
         if p >=r1_1 and p<r2_1:
-            val=dailydict[symb]['fPrice'][p+1][1]
-            if val!=None: updailydict[(symb,date)]['tomorrowPrice']= val
+            val=dailydict[symb]['fPriceDev'][p+1][1]
+            if val!=None: updailydict[(symb,date)]['tomorrowAdPriceDev']= val
 
-        #Upcalc fiveDaysLaterPrice
+        #Upcalc fiveDaysLaterAdPrice
         if p >=r1_5 and p<r2_5:
-
+            
             val=None
-            # 1 day tolerance: 
-            for i in [0,1]:
-                try:
-                    val = dailydict[symb]['fPrice'][p+5+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPrice'][p+5-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['fiveDaysLaterPrice']= val
+            try: val = dailydict[symb]['adPrice'][p+5][1] 
+            except: pass
+            if val!=None: 
+                updailydict[(symb,date)]['fiveDaysLaterAdPrice']= val
+                try:updailydict[(symb,date)]['fiveDaysLaterAdPriceDev']= (val-adp)/adp
+                except:pass
+                
                 
 
-        #Upcalc tenDaysLaterPrice
+        #Upcalc tenDaysLaterAdPrice
         if p >=r1_10 and p<r2_10:
 
             val=None
-            #2 days tolerance: 
-            for i in range(0,3):
-                try:
-                    val = dailydict[symb]['fPrice'][p+10+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPrice'][p+10-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['tenDaysLaterPrice']= val
+            try: val = dailydict[symb]['adPrice'][p+10][1] 
+            except: pass       
+            if val!=None: 
+                updailydict[(symb,date)]['tenDaysLaterAdPrice']= val
+                try:updailydict[(symb,date)]['tenDaysLaterAdPriceDev']= (val-adp)/adp
+                except:pass
 
 
-        #Upcalc twentyDaysLaterPrice
+        #Upcalc twentyDaysLaterAdPrice
         if p >=r1_20 and p<r2_20:
 
             val=None
-            #3 days tolerance: 
-            for i in range(0,4):
-                try:
-                    val = dailydict[symb]['fPrice'][p+20+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPrice'][p+20-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['twentyDaysLaterPrice']= val
+            try: val = dailydict[symb]['adPrice'][p+20][1] 
+            except: pass       
+            if val!=None: 
+                updailydict[(symb,date)]['twentyDaysLaterAdPrice']= val
+                try:updailydict[(symb,date)]['twentyDaysLaterAdPriceDev']= (val-adp)/adp
+                except:pass
 
-        #Upcalc thirtyDaysLaterPrice
+        #Upcalc thirtyDaysLaterAdPrice
         if p >=r1_30 and p<r2_30:
 
             val=None
-            #4 days tolerance: 
-            for i in range(0,5):
-                try:
-                    val = dailydict[symb]['fPrice'][p+30+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPrice'][p+30-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['thirtyDaysLaterPrice']= val
+            try: val = dailydict[symb]['adPrice'][p+30][1] 
+            except: pass       
+            if val!=None: 
+                updailydict[(symb,date)]['thirtyDaysLaterAdPrice']= val
+                try:updailydict[(symb,date)]['thirtyDaysLaterAdPriceDev']= (val-adp)/adp
+                except:pass
 
-        #Upcalc sixtyDaysLaterPrice
+        #Upcalc sixtyDaysLaterAdPrice
         if p >=r1_60 and p<r2_60:
 
             val=None
-            #5 days tolerance: 
-            for i in range(0,6):
-                try:
-                    val = dailydict[symb]['fPrice'][p+60+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPrice'][p+60-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['sixtyDaysLaterPrice']= val
+            try: val = dailydict[symb]['adPrice'][p+60][1] 
+            except: pass   
+            if val!=None: 
+                updailydict[(symb,date)]['sixtyDaysLaterAdPrice']= val
+                try:updailydict[(symb,date)]['sixtyDaysLaterAdPriceDev']= (val-adp)/adp
+                except:pass
+
+        #Upcalc yesterdayOnFourDaysBeforeAdPrice:
+        val=None
+        if p>3:
+            try: updailydict[(symb,date)]['yesterdayOnFourDaysBeforeAdPrice'] = dailydict[symb]['adPrice'][p-1][1] /dailydict[symb]['adPrice'][p-4][1]
+            except:pass
+
+                
 
 
-    # Upcalc laters PriceDevs:
-    #getting before and after data in fPriceDev:
-    sqlbefore= '(SELECT date,fPriceDev FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 60) ORDER BY date' %(dailydict[symb]['fPriceDev'][0][0],symb)
-    sqlafter= '(SELECT date,fPriceDev FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 60) ORDER BY date' %(dailydict[symb]['fPriceDev'][-1][0],symb)
+    #Upcalc fifteenAdVolAve and adVolOnFifteenAdVolAve:
+    #getting before and after data in adVols:
+    
+    sqlbefore= '(SELECT date,adVol FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 15) ORDER BY date' %(dailydict[symb]['adVol'][0][0],symb)
+    sqlafter= '(SELECT date,adVol FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 15) ORDER BY date' %(dailydict[symb]['adVol'][-1][0],symb)
     bdate=mycursor.execute(sqlbefore)
     bdate = mycursor.fetchall()
     adate=mycursor.execute(sqlafter)
     adate = mycursor.fetchall()
-    dailydict[symb]['fPriceDev']=bdate+dailydict[symb]['fPriceDev']+adate
-    tlen =len(dailydict[symb]['fPriceDev'])-len(adate)
 
-    # ranges for fivedays:
-    r1_5 =(len(bdate)-5) if len(bdate)>5 else 0
-    r2_5 = tlen - ((5 - len(adate)) if len(adate)<5 else 0)
+    dailydict[symb]['adVol']=bdate+dailydict[symb]['adVol']+adate
 
-    # ranges for tendays:
-    r1_10 =(len(bdate)-10) if len(bdate)>10 else 0
-    r2_10 = tlen - ((10 - len(adate)) if len(adate)<10 else 0)
+    lb = len(bdate)
+    if lb>15 :
+        s=15
+    elif lb>9:
+        s= lb
+    else:
+        s=10
 
-    # ranges for twentydays:
-    r1_20 =(len(bdate)-20) if len(bdate)>20 else 0
-    r2_20 = tlen - ((20 - len(adate)) if len(adate)<20 else 0)
-
-    # ranges for thirtydays:
-    r1_30 =(len(bdate)-30) if len(bdate)>30 else 0
-    r2_30 = tlen - ((30 - len(adate)) if len(adate)<30 else 0)
-
-    # ranges for sixtydays:
-    r1_60 =(len(bdate)-60) if len(bdate)>60 else 0
-    r2_60 = tlen - ((60 - len(adate)) if len(adate)<60 else 0)
-
-    #Upcalc DaysLaterPriceDev:
-    for p in range(0,tlen):
-        
-        #Upcalc threeDaysPriceDevSum:
-        val=None
-        if (p>=len(bdate)-3 and p<tlen-3) or(p==tlen-1 and len(adate)>2) or (p==tlen-2 and len(adate)>1 or (p==tlen-3 and len(adate)>0)):
-            date = dailydict[symb]['fPriceDev'][p+3][0]
-            val = 0
-            c = 0
-            # 1 day tolerance
-            for s in range(4):
-                if dailydict[symb]['fPriceDev'][p+2-s][1] != None:
-                    try:
-                        val = val + dailydict[symb]['fPriceDev'][p+2-s][1]
-                        c+=1
-                    except:
-                        pass    
-                if c==3: break
-
-        if val!=None and c==3 : updailydict[(symb,date)]['threeDaysPriceDevSum']= val
-    
-    
-    
-        date = dailydict[symb]['fPriceDev'][p][0]
+    for d in range(s,len(dailydict[symb]['adVol'])):
+        date=dailydict[symb]['adVol'][d][0]
+        vol=dailydict[symb]['adVol'][d][1]
+        ave=None
+        beg = 0 if d<16 else d-15
+        vols = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['adVol'][beg:d]))))
+        if len(vols) > 10: ave= mean(vols)
+        if ave != None: 
+            updailydict[(symb,date)]['fifteenAdVolAve']=ave    
+            if  ave !=0 and vol!=None: updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=vol/ave
 
 
-        #Upcalc fiveDaysLaterPriceDev
-        if p >=r1_5 and p<r2_5:
-
-            val=None
-            # 1 day tolerance: 
-            for i in [0,1]:
-                try:
-                    val = dailydict[symb]['fPriceDev'][p+5+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPriceDev'][p+5-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['fiveDaysLaterPriceDev']= val
-                
-
-        #Upcalc tenDaysLaterPriceDev
-        if p >=r1_10 and p<r2_10:
-
-            val=None
-            #2 days tolerance: 
-            for i in range(0,3):
-                try:
-                    val = dailydict[symb]['fPriceDev'][p+10+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPriceDev'][p+10-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['tenDaysLaterPriceDev']= val
+    # Upcalc threeDaysLegalBuyPowerRateAve: 3 days before ave of legalBuyerSellerPowRate. 1 days tolerance( 2 days mean in 3 last days)
+    # getting before and after data in legalBuyerSellerPowRate:
 
 
-        #Upcalc twentyDaysLaterPriceDev
-        if p >=r1_20 and p<r2_20:
-
-            val=None
-            #3 days tolerance: 
-            for i in range(0,4):
-                try:
-                    val = dailydict[symb]['fPriceDev'][p+20+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPriceDev'][p+20-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['twentyDaysLaterPriceDev']= val
-
-        #Upcalc thirtyDaysLaterPriceDev
-        if p >=r1_30 and p<r2_30:
-
-            val=None
-            #4 days tolerance: 
-            for i in range(0,5):
-                try:
-                    val = dailydict[symb]['fPriceDev'][p+30+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPriceDev'][p+30-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['thirtyDaysLaterPriceDev']= val
-
-        #Upcalc sixtyDaysLaterPriceDev
-        if p >=r1_60 and p<r2_60:
-
-            val=None
-            #5 days tolerance: 
-            for i in range(0,6):
-                try:
-                    val = dailydict[symb]['fPriceDev'][p+60+i][1]
-                    if val!= None: 
-                        break
-                    else:
-                        val = dailydict[symb]['fPriceDev'][p+60-i][1]
-                    if val!= None: break   
-                except:
-                    pass
-                    
-            if val!=None: updailydict[(symb,date)]['sixtyDaysLaterPriceDev']= val
+    sqlbefore= '(SELECT date,legalBuyerSellerPowRate FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 3) ORDER BY date' %(dailydict[symb]['legalBuyerSellerPowRate'][0][0],symb)
+    sqlafter= '(SELECT date,legalBuyerSellerPowRate FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 3) ORDER BY date' %(dailydict[symb]['legalBuyerSellerPowRate'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall() 
+    dailydict[symb]['legalBuyerSellerPowRate']=bdate+dailydict[symb]['legalBuyerSellerPowRate']+adate
 
     
+    s=3 if len(bdate)>2 else 2
+    
+    for d in range(1,len(dailydict[symb]['legalBuyerSellerPowRate'])):
+        date=dailydict[symb]['legalBuyerSellerPowRate'][d][0]
+        rate=dailydict[symb]['legalBuyerSellerPowRate'][d-1][1]
 
+        if rate!=None: updailydict[(symb,date)]['yesterdayLegalBuyPowerRate']= rate
+        if d>=s:
+            ave=None
+            beg = 0 if d<4 else d-3
+            rates = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['legalBuyerSellerPowRate'][beg:d]))))
+            if len(rates) > 1: ave= mean(rates)
+            if ave != None: updailydict[(symb,date)]['threeDaysLegalBuyPowerRateAve']=ave    
+            
+
+    # Upcalc threeDaysRealBuyPowerRateAve:3 days before ave of realBuyerSellerPowRate. 1 days tolerance( 2 days mean in 3 last days)
+    # getting before and after data in realBuyerSellerPowRate: 
+    
+    sqlbefore= '(SELECT date,realBuyerSellerPowRate FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 3) ORDER BY date' %(dailydict[symb]['realBuyerSellerPowRate'][0][0],symb)
+    sqlafter= '(SELECT date,realBuyerSellerPowRate FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 3) ORDER BY date' %(dailydict[symb]['realBuyerSellerPowRate'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall() 
+    dailydict[symb]['realBuyerSellerPowRate']=bdate+dailydict[symb]['realBuyerSellerPowRate']+adate
+
+    s=3 if len(bdate)>2 else 2
+
+    for d in range(s,len(dailydict[symb]['realBuyerSellerPowRate'])):
+        date=dailydict[symb]['realBuyerSellerPowRate'][d][0]
+        ave=None
+        beg = 0 if d<4 else d-3
+        rates = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['realBuyerSellerPowRate'][beg:d]))))
+        if len(rates) > 1: ave= mean(rates)
+        if ave != None: updailydict[(symb,date)]['threeDaysRealBuyPowerRateAve']=ave   
+
+
+    # Upcalc threeDaysCandleTypeAve:3 days before ave of candleTypes. 1 days tolerance( 2 days mean in 3 last days)
+    # getting before and after data in candleTypes: 
+    
+    sqlbefore= '(SELECT date,candleType FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 3) ORDER BY date' %(dailydict[symb]['candleType'][0][0],symb)
+    sqlafter= '(SELECT date,candleType FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 3) ORDER BY date' %(dailydict[symb]['candleType'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall() 
+    dailydict[symb]['candleType']=bdate+dailydict[symb]['candleType']+adate
+
+    s=3 if len(bdate)>2 else 2
+
+    for d in range(s,len(dailydict[symb]['candleType'])):
+        date=dailydict[symb]['candleType'][d][0]
+        ave=None
+        beg = 0 if d<4 else d-3
+        candles = list(filter(lambda x: x!=None ,list(map(lambda x: x[1],dailydict[symb]['candleType'][beg:d]))))
+        if len(candles) > 1: ave= mean(candles)
+        if ave != None: updailydict[(symb,date)]['threeDaysCandleTypeAve']=ave
+   
 
     pr= str(int(q/len(dailydict)*100)) +'%'
 
