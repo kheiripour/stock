@@ -5,7 +5,7 @@ from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\imp7.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\ImpTotal2.csv'
 
 def cleanRecord(value):  
     value = str(value.replace(',',''))
@@ -56,8 +56,20 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
        
     for row in reader:
         i +=1
+        sym = row[1]
         row[1]=symbolsdict.get(row[1],0)
-        if row[1] == 0 : continue
+        if row[1] == 0 : 
+            
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (row[0],row[1],sym)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            continue
         
         row[0]=cleanRecord(row[0])
         
@@ -391,22 +403,28 @@ for symb in dailydict:
     adate = mycursor.fetchall()
     dailydict[symb]['realBuyerSellerPowRate']=bdate+dailydict[symb]['realBuyerSellerPowRate']+adate
 
-    for d in range(0,len(dailydict[symb]['realBuyerSellerPowRate'])):
+    for d in range(0,len(dailydict[symb]['realBuyerSellerPowRate'])-1):
         
         date= dailydict[symb]['realBuyerSellerPowRate'][d][0]
-
-        if d>0:
-            val = dailydict[symb]['realBuyerSellerPowRate'][d-1][1]
+        val=None        
+        val = dailydict[symb]['realBuyerSellerPowRate'][d+1][1]
             
-            if val!=None:
-                updailydict[(symb,date)]['dailyRealBuyerPowerJump']= val
+        if val!=None: updailydict[(symb,date)]['tomorrowRealBuyerSellerPowRate']= val
 
-        if d<len(dailydict[symb]['realBuyerSellerPowRate'])-1:
+    # Upcalc dailyRealBuyerPowerJump
+    #getting before and after data in realBuyerPow:
+    sqlbefore= '(SELECT date,realBuyerPow FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 1) ORDER BY date' %(dailydict[symb]['realBuyerPow'][0][0],symb)
+    sqlafter= '(SELECT date,realBuyerPow FROM daily  WHERE date > %i AND symbolid=%i ORDER BY date LIMIT 1) ORDER BY date' %(dailydict[symb]['realBuyerPow'][-1][0],symb)
+    bdate=mycursor.execute(sqlbefore)
+    bdate = mycursor.fetchall()
+    adate=mycursor.execute(sqlafter)
+    adate = mycursor.fetchall()
+    dailydict[symb]['realBuyerPow']=bdate+dailydict[symb]['realBuyerPow']+adate
 
-            val = dailydict[symb]['realBuyerSellerPowRate'][d+1][1]
-            
-            if val!=None:
-                updailydict[(symb,date)]['tomorrowRealBuyerSellerPowRate']= val
+    for d in range(1,len(dailydict[symb]['realBuyerPow'])):
+        date= dailydict[symb]['realBuyerPow'][d][0]
+        try: updailydict[(symb,date)]['dailyRealBuyerPowerJump']=dailydict[symb]['realBuyerPow'][d][1]/dailydict[symb]['realBuyerPow'][d-1][1]
+        except: pass
 
     # Adjustments:
 
