@@ -5,7 +5,7 @@ from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\ImpTotal2.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\Import14001009raw.csv'
 
 def cleanRecord(value):  
     value = str(value.replace(',',''))
@@ -112,36 +112,43 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             realSellerPow= None
         dailydict[row[1]]['realSellerPow']=dailydict[row[1]].get('realSellerPow',[])+[(row[0],realSellerPow)]
 
-        #calc realBuyerSellerPowRate: realBuyerPow / realSellerPow; if realSellerPow=0 will be 999999
-        try:realBuyerSellerPowRate= 999999 if realSellerPow == 0 or realSellerPow==None else (realBuyerPow / realSellerPow)  # if realSellerPow = None then realBuyerSellerPowRate=9999999 or None?  
-        except Exception as er:
-            e = 'realBuyerSellerPowRate: ' + str (er)
-            try:
-                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
-                
-                val = (row[0],row[1],e)  
-                                
-                mycursor.execute(sql, val)
-                mydb.commit()
-            except:
-                pass
-            realBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
+        #calc realBuyerSellerPowRate: realBuyerPow / realSellerPow; if realSellerPow=0 will be 999999 and realBuyerPow==0 then realBuyerPow==0
+        if realBuyerPow==0:
+            realBuyerPow==0
+        else:
+            try:realBuyerSellerPowRate= 999999 if realSellerPow == 0 or realSellerPow==None else (realBuyerPow / realSellerPow)  # if realSellerPow = None then realBuyerSellerPowRate=9999999 or None?  
+            except Exception as er:
+                e = 'realBuyerSellerPowRate: ' + str (er)
+                try:
+                    sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                    
+                    val = (row[0],row[1],e)  
+                                    
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                except:
+                    pass
+                realBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['realBuyerSellerPowRate']=dailydict[row[1]].get('realBuyerSellerPowRate',[])+[(row[0],realBuyerSellerPowRate)]
 
         #calc legalBuyerSellerPowRate: ((legalBuyersVol /  legalBuyersCount) * fPrice) / ((legalSellersVol /  legalSellersCount) * fPrice) if ((legalSellersVol /  legalSellersCount) * fPrice)> 0 else 999999
-        try:legalBuyerSellerPowRate= ((row[18] / row[14]) * row[5]) / ((row[19] /  row[15]) * row[5]) if ((row[19] /  row[15]) * row[5])> 0 else 999999   # if makhraj = None then legalBuyerSellerPowRate=9999999 or None?  
-        except Exception as er:
-            e = 'legalBuyerSellerPowRate: ' + str (er)
-            try:
-                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
-                
-                val = (row[0],row[1],e)  
-                                
-                mycursor.execute(sql, val)
-                mydb.commit()
-            except:
-                pass
-            legalBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
+        
+        if row[18]==0:
+            legalBuyerSellerPowRate=0
+        else:
+            try:legalBuyerSellerPowRate= ((row[18] / row[14]) * row[5]) / ((row[19] /  row[15]) * row[5]) if ((row[19] /  row[15]) * row[5])> 0 else 999999   # if makhraj = None then legalBuyerSellerPowRate=9999999 or None?  
+            except Exception as er:
+                e = 'legalBuyerSellerPowRate: ' + str (er)
+                try:
+                    sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                    
+                    val = (row[0],row[1],e)  
+                                    
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                except:
+                    pass
+                legalBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['legalBuyerSellerPowRate']=dailydict[row[1]].get('legalBuyerSellerPowRate',[])+[(row[0],legalBuyerSellerPowRate)]
         
         #calc realStakeholdersMoneyFlow: (realBuyersVol * fPrice) - (realSellersVol * fPrice)
@@ -449,17 +456,42 @@ for symb in dailydict:
 
     leng=len(dailydict[symb]['fPrice'])
     for p in range(1,leng):
-        bprice = dailydict[symb]['fPrice'][p][1]/(1+(dailydict[symb]['fPriceDev'][p][1]/100))
-        
+        fpricedev = dailydict[symb]['fPriceDev'][p][1]
+        if fpricedev<-99:fpricedev=-100
+        try:
+            bprice = dailydict[symb]['fPrice'][p][1]/(1+(fpricedev/100))
+        except Exception as er:
+            e = 'adjustment before price: ' + str (er)
+            try:
+                sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                
+                val = (dailydict[symb]['fPrice'][p][0],symb,e)  
+                                
+                mycursor.execute(sql, val)
+                mydb.commit()
+            except:
+                pass
+            continue
         dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
+        
         if dev > 0.1:
             coef = (dailydict[symb]['fPrice'][p][1]/(100+(dailydict[symb]['fPriceDev'][p][1]))/dailydict[symb]['fPrice'][p-1][1])*100
             try:
                 sql='INSERT adjustments (symbolid,date,coefficient) VALUES(%i,%i,%s)'%(symb,dailydict[symb]['fPrice'][p][0],coef)
                 mycursor.execute(sql)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                e = 'insert adjustment : ' + str (er)
+                try:
+                    sql = "INSERT INTO errors (date,symbolid,error) VALUES (%s,%s,%s)"
+                    
+                    val = (dailydict[symb]['fPrice'][p][0],symb,e)  
+                                    
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                except:
+                    pass
+
             sql= '(SELECT date,adPrice,adVol FROM daily  WHERE date < %i AND symbolid=%i) ORDER BY date DESC' %(dailydict[symb]['fPrice'][p][0],symb)
             ads=mycursor.execute(sql)
             ads = mycursor.fetchall()
