@@ -1,4 +1,5 @@
 import csv
+from logging import exception
 import mysql.connector
 from time import time
 from os import system
@@ -67,8 +68,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             continue
         
         row[0]=cleanRecord(row[0])
@@ -91,8 +93,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             realBuyerPow=None
         dailydict[row[1]]['realBuyerPow']=dailydict[row[1]].get('realBuyerPow',[])+[(row[0],realBuyerPow)]
 
@@ -107,8 +110,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             realSellerPow= None
         dailydict[row[1]]['realSellerPow']=dailydict[row[1]].get('realSellerPow',[])+[(row[0],realSellerPow)]
 
@@ -126,8 +130,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                     
                     mycursor.execute(sql, val)
                     mydb.commit()
-                except:
-                    pass
+                except Exception as er:
+                    mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                    mydb.commit()
                 realBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['realBuyerSellerPowRate']=dailydict[row[1]].get('realBuyerSellerPowRate',[])+[(row[0],realBuyerSellerPowRate)]
 
@@ -146,8 +151,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                     
                     mycursor.execute(sql, val)
                     mydb.commit()
-                except:
-                    pass
+                except Exception as er:
+                    mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                    mydb.commit()
                 legalBuyerSellerPowRate=999999  if str(er)== 'division by zero' else None
         dailydict[row[1]]['legalBuyerSellerPowRate']=dailydict[row[1]].get('legalBuyerSellerPowRate',[])+[(row[0],legalBuyerSellerPowRate)]
         
@@ -162,8 +168,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             realStakeholdersMoneyFlow= None
         dailydict[row[1]]['realStakeholdersMoneyFlow']=dailydict[row[1]].get('realStakeholdersMoneyFlow',[])+[(row[0],realStakeholdersMoneyFlow)]
 
@@ -178,8 +185,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             volOnBasicVol= None
         dailydict[row[1]]['volOnBasicVol']=dailydict[row[1]].get('volOnBasicVol',[])+[(row[0],volOnBasicVol)]
         
@@ -198,8 +206,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             candleColor= None
         dailydict[row[1]]['candleColor']=dailydict[row[1]].get('candleColor',[])+[(row[0],candleColor)]
 
@@ -236,8 +245,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                     
                     mycursor.execute(sql, val)
                     mydb.commit()
-                except:
-                    pass
+                except Exception as er:
+                    mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                    mydb.commit()
                 candleType= None
         dailydict[row[1]]['candleType']=dailydict[row[1]].get('candleType',[])+[(row[0],candleType)]
 
@@ -252,8 +262,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             closeFinalDev= None
         dailydict[row[1]]['closeFinalDev']=dailydict[row[1]].get('closeFinalDev',[])+[(row[0],closeFinalDev)]
 
@@ -268,8 +279,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             closeMinDev= None
         dailydict[row[1]]['closeMinDev']=dailydict[row[1]].get('closeMinDev',[])+[(row[0],closeMinDev)]
 
@@ -285,8 +297,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             realBuyersVolOnVol= None
         dailydict[row[1]]['realBuyersVolOnVol']=dailydict[row[1]].get('realBuyersVolOnVol',[])+[(row[0],realBuyersVolOnVol)]
 
@@ -301,8 +314,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             realBuyersVolOnVol= None
         dailydict[row[1]]['legalSellersVolOnVol']=dailydict[row[1]].get('legalSellersVolOnVol',[])+[(row[0],legalSellersVolOnVol)]
 
@@ -321,8 +335,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             adPrice= None
         dailydict[row[1]]['adPrice']=dailydict[row[1]].get('adPrice',[])+[(row[0],adPrice)]
 
@@ -336,8 +351,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             adVol= None
         dailydict[row[1]]['adVol']=dailydict[row[1]].get('adVol',[])+[(row[0],adVol)]
 
@@ -366,9 +382,9 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
-    
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
         pr = str(int((i/rowsnubmer) *100)) + '%'
         system('cls')
         outputtext2 = outputtext1 + pr
@@ -389,9 +405,7 @@ t0=time()
 
 #Calculating dependent fields:
 updailydict = defaultdict(dict)
-try:del dailydict[0]
 
-except :pass
 outputtext3 = outputtext3 + '\nCalculatting dependent fields:\n' 
 
 q=0
@@ -469,8 +483,9 @@ for symb in dailydict:
                                 
                 mycursor.execute(sql, val)
                 mydb.commit()
-            except:
-                pass
+            except Exception as er:
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                mydb.commit()
             continue
         dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
         
@@ -489,8 +504,9 @@ for symb in dailydict:
                                     
                     mycursor.execute(sql, val)
                     mydb.commit()
-                except:
-                    pass
+                except Exception as er:
+                    mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                    mydb.commit()
 
             sql= '(SELECT date,adPrice,adVol FROM daily  WHERE date < %i AND symbolid=%i) ORDER BY date DESC' %(dailydict[symb]['fPrice'][p][0],symb)
             ads=mycursor.execute(sql)
