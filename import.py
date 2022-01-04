@@ -174,7 +174,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
             realStakeholdersMoneyFlow= None
         dailydict[row[1]]['realStakeholdersMoneyFlow']=dailydict[row[1]].get('realStakeholdersMoneyFlow',[])+[(row[0],realStakeholdersMoneyFlow)]
 
-        #calc volOnBasicVol: vol/basicVol
+        #calc volOnBasicVol: vol/basicVol ,adVolOnFifteenAdVolAve
         try:volOnBasicVol=  row[3]/row[4]
         except Exception as er:
             e = 'volOnBasicVol: ' + str (er)
@@ -190,7 +190,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                 mydb.commit()
             volOnBasicVol= None
         dailydict[row[1]]['volOnBasicVol']=dailydict[row[1]].get('volOnBasicVol',[])+[(row[0],volOnBasicVol)]
-        
+        dailydict[row[1]]['adVolOnFifteenAdVolAve']=dailydict[row[1]].get('adVolOnFifteenAdVolAve',[])+[(row[0],1)]
         #calc candleColor: (close - open) >0 : 1; (close - open) <0 : -1; (close - open) =0 : 0
         try:
             c = row[10] - row[7]
@@ -677,9 +677,7 @@ for symb in dailydict:
         if ave != None: 
             updailydict[(symb,date)]['fifteenAdVolAve']=ave    
             if  ave !=0 and vol!=None: updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=vol/ave
-            else: updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=1
-        else:
-            updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=1
+    
 
     # Upcalc threeDaysLegalBuyPowerRateAve: 3 days before ave of legalBuyerSellerPowRate. 1 days tolerance( 2 days mean in 3 last days)
     # getting before and after data in legalBuyerSellerPowRate:
