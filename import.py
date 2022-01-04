@@ -677,7 +677,9 @@ for symb in dailydict:
         if ave != None: 
             updailydict[(symb,date)]['fifteenAdVolAve']=ave    
             if  ave !=0 and vol!=None: updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=vol/ave
-
+            else: updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=1
+        else:
+            updailydict[(symb,date)]['adVolOnFifteenAdVolAve']=1
 
     # Upcalc threeDaysLegalBuyPowerRateAve: 3 days before ave of legalBuyerSellerPowRate. 1 days tolerance( 2 days mean in 3 last days)
     # getting before and after data in legalBuyerSellerPowRate:
