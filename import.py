@@ -6,7 +6,7 @@ from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\Import14001009raw.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\Import.csv'
 
 def cleanRecord(value):  
     value = str(value.replace(',',''))
@@ -57,7 +57,11 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
        
     for row in reader:
         i +=1
-        sym = row[1]
+        if len (row)>1 : sym = row[1] 
+        else: 
+            continue
+
+        if row[0]=='':row[0]=0
         row[1]=symbolsdict.get(row[1],0)
         if row[1] == 0 : 
             
@@ -69,7 +73,8 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
                 mycursor.execute(sql, val)
                 mydb.commit()
             except Exception as er:
-                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
+                e= str(er)
+                mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(e))
                 mydb.commit()
             continue
         
@@ -118,7 +123,7 @@ with open (importFile,'r',encoding='UTF-8',newline='') as impfile:
 
         #calc realBuyerSellerPowRate: realBuyerPow / realSellerPow; if realSellerPow=0 will be 999999 and realBuyerPow==0 then realBuyerPow==0
         if realBuyerPow==0:
-            realBuyerPow==0
+            realBuyerSellerPowRate=0
         else:
             try:realBuyerSellerPowRate= 999999 if realSellerPow == 0 or realSellerPow==None else (realBuyerPow / realSellerPow)  # if realSellerPow = None then realBuyerSellerPowRate=9999999 or None?  
             except Exception as er:
@@ -447,7 +452,7 @@ for symb in dailydict:
         try: updailydict[(symb,date)]['dailyRealBuyerPowerJump']=dailydict[symb]['realBuyerPow'][d][1]/dailydict[symb]['realBuyerPow'][d-1][1]
         except: pass
 
-    # Adjustments:
+    # Adjustments and Upcalc tomorrowAdPriceDev:
 
     #getting before and after data in fPrice:
     sqlbefore= '(SELECT date,fPrice FROM daily  WHERE date < %i AND symbolid=%i ORDER BY date DESC LIMIT 1) ORDER BY date' %(dailydict[symb]['fPrice'][0][0],symb)
@@ -470,6 +475,11 @@ for symb in dailydict:
 
     leng=len(dailydict[symb]['fPrice'])
     for p in range(1,leng):
+
+        #Upcalc tomorrowAdPriceDev:
+        val=dailydict[symb]['fPriceDev'][p][1]
+        if val!=None: updailydict[(symb,dailydict[symb]['fPriceDev'][p-1][0])]['tomorrowAdPriceDev']= val
+
         fpricedev = dailydict[symb]['fPriceDev'][p][1]
         if fpricedev<-99:fpricedev=-100
         try:
@@ -487,11 +497,14 @@ for symb in dailydict:
                 mycursor.execute("INSERT INTO errors (error) VALUES (%s)"%(str(er)))
                 mydb.commit()
             continue
-        dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
-        
+        if bprice>0:dev = abs((bprice - dailydict[symb]['fPrice'][p-1][1]))/ bprice
+        else:
+            continue
+                
         if dev > 0.1:
-            coef = (dailydict[symb]['fPrice'][p][1]/(100+(dailydict[symb]['fPriceDev'][p][1]))/dailydict[symb]['fPrice'][p-1][1])*100
+            
             try:
+                coef = (dailydict[symb]['fPrice'][p][1]/(100+(dailydict[symb]['fPriceDev'][p][1]))/dailydict[symb]['fPrice'][p-1][1])*100
                 sql='INSERT adjustments (symbolid,date,coefficient) VALUES(%i,%i,%s)'%(symb,dailydict[symb]['fPrice'][p][0],coef)
                 mycursor.execute(sql)
                 mydb.commit()
@@ -545,10 +558,7 @@ for symb in dailydict:
     tlen =len(dailydict[symb]['adPrice'])-len(adate)
     alen = len(adate)
     blen = len(bdate)
-    # ranges for tommorow:
-    r1_1 =(blen-1) if blen>1 else 0
-    r2_1 = tlen - ((1 - alen) if alen<1 else 0)
-
+ 
     # ranges for fivedays:
     r1_5 =(blen-5) if blen>5 else 0
     r2_5 = tlen - ((5 - alen) if alen<5 else 0)
@@ -569,16 +579,12 @@ for symb in dailydict:
     r1_60 =(blen-60) if blen>60 else 0
     r2_60 = tlen - ((60 - alen) if alen<60 else 0)
 
-    end = tlen + (blen if blen<4 else 4)
+    end = tlen + (alen if alen<4 else 4)
     #Upcalc DaysLaterAdPrice
     for p in range(0,end):
         val=None
         date = dailydict[symb]['adPrice'][p][0]
         adp=dailydict[symb]['adPrice'][p][1]
-        #Upcalc tomorrowAdPriceDev:
-        if p >=r1_1 and p<r2_1:
-            val=dailydict[symb]['fPriceDev'][p+1][1]
-            if val!=None: updailydict[(symb,date)]['tomorrowAdPriceDev']= val
 
         #Upcalc fiveDaysLaterAdPrice
         if p >=r1_5 and p<r2_5:
