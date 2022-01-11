@@ -1,12 +1,11 @@
 import csv
-from logging import exception
 import mysql.connector
 from time import time
 from os import system
 from statistics import mean
 from collections import defaultdict
 
-importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\Import.csv'
+importFile='C:\\Users\\98912\\Desktop\\Stock\\csv\\14001019.csv'
 
 def cleanRecord(value):  
     value = str(value.replace(',',''))
